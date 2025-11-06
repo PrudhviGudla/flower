@@ -1,0 +1,8 @@
+flwr[simulation]
+torch
+torchvision
+numpy
+wandb
+python-dotenv
+matplotlib
+pyyaml

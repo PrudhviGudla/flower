@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vfedentity"
+version = "1.0.0"
+description = "VFL pipeline with batching, validation support and also the flower implementation of the paper: Entity Augmentation for Efficient Classification of Vertically Partitioned Data with Limited Overlap, https://arxiv.org/abs/2406.17899 . It supports creating data loaders for loading data to clients in an unaligned/partially unaligned way(Unaligned: images in a batch not in same sequence in all clients)"
+license = "Apache-2.0"
+# Dependencies
+dependencies = [
+    "flwr[simulation]>=1.22.0",
+    "flwr-datasets[vision]>=0.5.0",
+    "torch==2.7.1",
+    "torchvision==0.22.1",
+    "numpy",
+    "wandb",
+    "python-dotenv",
+    "matplotlib"
+]
+# pip install -e . to install above
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.flwr.app]
+publisher = "prudhvigudla"
+
+# Point to your ServerApp and ClientApp objects
+[tool.flwr.app.components]
+serverapp = "vfedentity.server_app:app"
+clientapp = "vfedentity.client_app:app"
+
+# Custom config values accessible via `context.run_config`
+[tool.flwr.app.config]
+config-path = "config.yaml" # can bypass by cli flwr run ...
+
+# Default federation to use when running the app
+[tool.flwr.federations]
+default = "local-simulation"
+
+# Local simulation federation with 10 virtual SuperNodes 
+# This block is for overiding global resource allocation configs for different types of simulations like "local-simulation", "full-gpu-test" etc.
+[tool.flwr.federations.local-simulation] 
+# Use resources from config instead of hardcoding
+options.num-supernodes = 10 # Each SuperNode runs a ClientApp
+# options.backend.client-resources.num-cpus = 1 # each ClientApp assumes to use 1 CPU (default is 2)
+# options.backend.client-resources.num-gpus = 0.3 # each ClientApp uses 25% of VRAM (default is 0.0)
+
+[tool.flwr.simulation.backend.config]
+# This "client_resources" dict is applied to EACH virtual client.
+# client_resources = {
+#   "num_cpus": 2,
+#   "num_gpus": 0.3
+# }
+
+# [tool.flwr.server-app-fed.ray_config]
+# num_cpus = 2
+# num_gpus = 0.2

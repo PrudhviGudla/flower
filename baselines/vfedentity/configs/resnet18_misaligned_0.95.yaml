@@ -1,0 +1,56 @@
+experiment:
+  name: "vfl_paper_5pct_overlap"
+  description: "Reproduce paper results with 5% overlap"
+  seed: 42
+
+data:
+  dataset: "cifar10"
+  data_path: "./data"
+  num_train_samples: 50000
+  num_test_samples: 10000
+  num_classes: 10
+  num_channels: 3
+
+model:
+  client:
+    architecture: "resnet18"  # Use your original model
+    pretrained: false
+    embedding_dim: 128
+  server:
+    architecture: "mlp"
+    hidden_dims: [256, 128]
+    loss_method: "ce" # cross entropy loss, could also be "kl" for kl divergence loss
+    dropout: 0.5 # not used in paper experiments but can add later
+
+training:
+  num_clients: 2
+  num_epochs: 50
+  batch_size: 64
+  learning_rate: 0.001
+  optimizer: "adam" # need to pass or else error
+  weight_decay: 0 # not used in paper experiments but can add later
+  overlap_ratio: 0.05  # 5% overlap
+  only_train_with_overlap: False
+  mode: "train-val"  # could be train, train-val or test
+
+paths:
+  exp_dir: "./experiments"
+  resume_from: null
+
+checkpoint:
+  save_every_n_epochs: 1
+  keep_last_n: 2
+
+logging:
+  log_to_wandb: true
+  wandb_project: "vfl-entity-augmentation"
+  wandb_entity: null
+  log_interval: 10
+
+resources:
+  client:
+    num_cpus: 2
+    num_gpus: 0.3
+  server:
+    num_cpus: 3
+    num_gpus: 0.3
