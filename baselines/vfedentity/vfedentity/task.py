@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from torchvision import datasets, transforms
+from torchvision import datasets, transforms, models
 import numpy as np
 from typing import Tuple, List, Dict
 from pathlib import Path
@@ -297,5 +297,5 @@ def load_partition(partition_id: int, num_partitions: int, config: VFLConfig):
         train_loader,
         test_loader,
         client_train_data['v_split_id'],
-        client_train_data['channels']
+        config.num_channels
     )

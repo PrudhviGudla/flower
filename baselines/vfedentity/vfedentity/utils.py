@@ -240,7 +240,7 @@ def load_config(config_path: str = "config.yaml") -> VFLConfig:
         kwargs['optimizer'] = training.get('optimizer', 'adam')
         kwargs['weight_decay'] = training.get('weight_decay', 0)
         kwargs['overlap_ratio'] = training.get('overlap_ratio', 1.0)
-        kwargs['only_train_with_overlap'] = training.get('only_train_with_overlap'), False
+        kwargs['only_train_with_overlap'] = training.get('only_train_with_overlap', False)
         kwargs['mode'] = training.get('mode', 'train-val')
     
     # Paths section
@@ -343,7 +343,7 @@ def save_metrics(metrics: Dict, config: VFLConfig):
 def plot_training_curves(train_losses = None, val_losses = None, val_accuracies = None, config: VFLConfig = None):
     """Plot and save training curves."""
     
-    epochs = range(1, len(config.num_epochs) + 1)
+    epochs = range(1, config.num_epochs + 1)
     i = 0
 
     if config.mode == "train":
@@ -355,8 +355,11 @@ def plot_training_curves(train_losses = None, val_losses = None, val_accuracies 
     
     fig, axes = plt.subplots(1, k, figsize=(15, 4))
 
+    if k == 1:
+        axes = [axes]
+
     if train_losses and i<k:
-        axes[i].plot(train_losses, linewidth=2)
+        axes[i].plot(epochs, train_losses, linewidth=2)
         axes[i].set_xlabel('Epoch', fontsize=12)
         axes[i].set_ylabel('Loss', fontsize=12)
         axes[i].set_title('Training Loss', fontsize=14, fontweight='bold')
@@ -364,7 +367,7 @@ def plot_training_curves(train_losses = None, val_losses = None, val_accuracies 
         i+=1
 
     if val_losses and i<k:
-        axes[i].plot(val_losses, linewidth=2)
+        axes[i].plot(epochs, val_losses, linewidth=2)
         axes[i].set_xlabel('Epoch', fontsize=12)
         axes[i].set_ylabel('Loss', fontsize=12)
         axes[i].set_title('Validation/Test Loss', fontsize=14, fontweight='bold')
@@ -372,7 +375,7 @@ def plot_training_curves(train_losses = None, val_losses = None, val_accuracies 
         i+=1
 
     if val_accuracies and i<k:
-        axes[i].plot(epochs, test_accuracies, linewidth=2, marker='o', color='red')
+        axes[i].plot(epochs, val_accuracies, linewidth=2, marker='o', color='red')
         axes[i].set_xlabel('Epoch', fontsize=12)
         axes[i].set_ylabel('Accuracy', fontsize=12)
         axes[i].set_title('Validation/Test Accuracy', fontsize=14, fontweight='bold')
@@ -389,7 +392,7 @@ def plot_training_curves(train_losses = None, val_losses = None, val_accuracies 
 
 # def save_checkpoint(server_model, optimizer, epoch: int, round_num: int,
 #                    metrics: Dict, config: VFLConfig, is_best: bool = False):
-#     """Save model checkpoint."""
+#     
     
 #     checkpoint = {
 #         'epoch': epoch,

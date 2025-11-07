@@ -6,7 +6,7 @@ experiment:
 data:
   dataset: "cifar10"
   data_path: "./data"
-  num_train_samples: 50000
+  num_train_samples: 10000
   num_test_samples: 10000
   num_classes: 10
   num_channels: 3
@@ -24,8 +24,8 @@ model:
 
 training:
   num_clients: 2
-  num_epochs: 50
-  batch_size: 64
+  num_epochs: 5
+  batch_size: 128
   learning_rate: 0.001
   optimizer: "adam" # need to pass or else error
   weight_decay: 0 # not used in paper experiments but can add later

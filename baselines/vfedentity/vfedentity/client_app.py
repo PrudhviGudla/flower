@@ -23,7 +23,7 @@ class VFLClient(NumPyClient):
         self.train_loader = train_loader
         self.test_loader = test_loader
         self.v_split_id = v_split_id
-        self.device = device,
+        self.device = device
         self.config = config
 
         self.num_channels = config.num_channels
@@ -142,28 +142,46 @@ class VFLClient(NumPyClient):
 def client_fn(context: Context):
     """Create VFL client instance."""
     
-    # Get configuration
     partition_id = context.node_config["partition-id"]
     num_partitions = context.node_config["num-partitions"]
     
-    # Load config from YAML
-    config_path = context.run_config.get("config-path", "config.yaml")
-    config = load_config(config_path)
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"\n[CLIENT_FN] Creating client - partition {partition_id}/{num_partitions}", flush=True)
     
-    # Load partition
-    train_loader, test_loader, v_split_id, channels = load_partition(
-        partition_id, num_partitions, config
-    )
+    try:
+        # Load config from YAML
+        config_path = context.run_config.get("config-path", "config.yaml")
+        print(f"[CLIENT_FN] Loading config from: {config_path}", flush=True)
+        config = load_config(config_path)
+        print(f"[CLIENT_FN] Config loaded successfully", flush=True)
+        
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"[CLIENT_FN] Device: {device}", flush=True)
+        
+        # Load partition
+        print(f"[CLIENT_FN] Loading partition {partition_id}/{num_partitions}...", flush=True)
+        train_loader, test_loader, v_split_id, channels = load_partition(
+            partition_id, num_partitions, config
+        )
+        print(f"[CLIENT_FN] Partition loaded - v_split_id={v_split_id}, channels={channels}", flush=True)
+        
+        print(f"[CLIENT_FN] Creating VFLClient instance...", flush=True)
+        client = VFLClient(
+            train_loader=train_loader,
+            test_loader=test_loader,
+            v_split_id=v_split_id,
+            config=config,
+            device=device
+        )
+        print(f"[CLIENT_FN] VFLClient created successfully", flush=True)
+        
+        print(f"[CLIENT_FN] Converting to Flower client...", flush=True)
+        return client.to_client()
     
-    return VFLClient(
-        train_loader,
-        test_loader,
-        v_split_id,
-        config,
-        device
-    ).to_client()
+    except Exception as e:
+        print(f"[CLIENT_FN] ERROR: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 app = ClientApp(client_fn=client_fn)
