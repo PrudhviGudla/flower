@@ -226,7 +226,8 @@ def create_dataloader(
     # Transform: Normalize to [-1, 1]
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))  # Works for any number of channels
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+
     ])
     
     dataset = VFLDataset(images, labels, entity_ids, transform=transform)

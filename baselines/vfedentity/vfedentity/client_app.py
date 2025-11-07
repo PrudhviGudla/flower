@@ -54,7 +54,7 @@ class VFLClient(NumPyClient):
             self.is_testing = True # flag
 
         self.current_batch_data = None
-        self.current_embedding = None
+        self.current_embeddings = None
         
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
         """Return empty - VFL doesn't share model parameters."""
@@ -63,7 +63,7 @@ class VFLClient(NumPyClient):
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         """Forward pass for training and testing."""
 
-        self.is_testing = config["is_testing"]
+        self.is_testing = config.get("is_testing", False)
 
         try:
             if self.is_testing:
@@ -111,7 +111,7 @@ class VFLClient(NumPyClient):
     def evaluate(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
         """Backward pass during training, nothing during testing."""
 
-        self.is_testing = config["is_testing"]
+        self.is_testing = config.get("is_testing", False)
         
         try:
             if self.is_testing: 
