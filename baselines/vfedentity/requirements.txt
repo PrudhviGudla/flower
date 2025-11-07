@@ -1,8 +1,11 @@
 flwr[simulation]
+--extra-index-url https://download.pytorch.org/whl/cu118
 torch
 torchvision
+torchaudio
 numpy
 wandb
 python-dotenv
 matplotlib
 pyyaml
+

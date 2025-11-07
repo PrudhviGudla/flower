@@ -43,7 +43,7 @@ default = "local-simulation"
 # This block is for overiding global resource allocation configs for different types of simulations like "local-simulation", "full-gpu-test" etc.
 [tool.flwr.federations.local-simulation] 
 # Use resources from config instead of hardcoding
-options.num-supernodes = 10 # Each SuperNode runs a ClientApp
+options.num-supernodes = 2 # Each SuperNode runs a ClientApp
 # options.backend.client-resources.num-cpus = 1 # each ClientApp assumes to use 1 CPU (default is 2)
 # options.backend.client-resources.num-gpus = 0.3 # each ClientApp uses 25% of VRAM (default is 0.0)
 

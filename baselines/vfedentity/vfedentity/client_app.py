@@ -23,7 +23,8 @@ class VFLClient(NumPyClient):
         self.train_loader = train_loader
         self.test_loader = test_loader
         self.v_split_id = v_split_id
-        self.device = device
+        self.device = device,
+        self.config = config
 
         self.num_channels = config.num_channels
         self.mode = config.mode
@@ -37,12 +38,15 @@ class VFLClient(NumPyClient):
         
         if self.mode == "train" or self.mode == "train-val":
             self.train_iter = iter(self.train_loader)
-            self.test_iter = iter(self.test_loader)
+            if self.test_loader is not None:  
+                self.test_iter = iter(self.test_loader)
+            else:
+                self.test_iter = None
             
             if config.optimizer == "adam":
-                self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, weight_decay=config.weight_decay)
+                self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
             elif config.optimizer =="sgd":
-                self.optimizer = torch.optim.SGD(self.model.parameters(), lr=lr, weight_decay=config.weight_decay, momentum=0.9)
+                self.optimizer = torch.optim.SGD(self.model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay, momentum=0.9)
             self.is_testing = False # flag
 
         if self.mode == "test":
@@ -95,7 +99,7 @@ class VFLClient(NumPyClient):
                 len(images),
                 {
                     "v_split_id": float(self.v_split_id),
-                    "is_testing": float(is_testing) 
+                    "is_testing": float(self.is_testing) 
                 }
             )
     

@@ -1,6 +1,7 @@
 .env
 flower_env
-
+flwr_venv
+wandb
 
 
 # Byte-compiled / optimized / DLL files

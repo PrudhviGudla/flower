@@ -28,8 +28,11 @@ class VFLStrategy(Strategy):
         self.embedding_dim = config.client_embedding_dim
         self.num_classes = config.num_classes
         self.evaluate_every_n_rounds = config.evaluate_every_n_rounds
-        self.loss_method = config.loss_method
+        self.loss_method = config.server_loss_method
         self.mode = config.mode
+        self.num_train_batches = config.num_train_batches
+        self.num_test_batches = config.num_test_batches
+        self.batches_per_epoch = config.batches_per_epoch
 
         total_embedding_dim = self.embedding_dim * self.num_clients
         
@@ -83,6 +86,10 @@ class VFLStrategy(Strategy):
         self.wandb = setup_wandb(config)
         # if config.resume_from:
         #     self._load_checkpoint(config.resume_from)
+
+    def initialize_parameters(self, client_manager):
+    	from flwr.common import ndarrays_to_parameters
+    	return ndarrays_to_parameters([])
 
     def _determine_phase(self, server_round: int) -> Tuple[str, int]:
         """

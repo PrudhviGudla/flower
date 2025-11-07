@@ -1,13 +1,13 @@
 """Flower server for VFL."""
 
 import torch
-from flwr.server import ServerApp, ServerConfig
+from flwr.server import ServerApp, ServerAppComponents, ServerConfig
 from flwr.common import Context
 from vfedentity.strategy import VFLStrategy
 from vfedentity.utils import load_config
 
 
-def server_fn(context: Context):
+def server_fn(context: Context) -> ServerAppComponents:
     """Create VFL server from YAML config."""
     
     # Load config from YAML
@@ -20,7 +20,12 @@ def server_fn(context: Context):
     strategy = VFLStrategy(config=config, device=device)
     server_config = ServerConfig(num_rounds=config.total_rounds)
     
-    return strategy, server_config
+    # return strategy, server_config
+
+    return ServerAppComponents(
+        strategy=strategy,
+        config=server_config
+    )
 
 
 app = ServerApp(server_fn=server_fn)

@@ -133,30 +133,30 @@ class VFLConfig:
     def _compute_derived_values(self):
         """Compute derived configuration values based on mode."""
         
-        num_train_batches = self.num_train_samples // self.batch_size
-        num_test_batches = self.num_test_samples // self.batch_size
+        self.num_train_batches = self.num_train_samples // self.batch_size
+        self.num_test_batches = self.num_test_samples // self.batch_size
         
         if self.mode == "train":
             # Only training
-            self.batches_per_epoch = num_train_batches
-            self.total_rounds = num_train_batches * self.num_epochs
+            self.batches_per_epoch = self.num_train_batches
+            self.total_rounds = self.num_train_batches * self.num_epochs
             self.evaluate_every_n_rounds = float('inf')  # Never evaluate
             
         elif self.mode == "train-val":
             # Training + Testing each epoch
-            self.batches_per_epoch = num_train_batches + num_test_batches
+            self.batches_per_epoch = self.num_train_batches + self.num_test_batches
             self.total_rounds = self.batches_per_epoch * self.num_epochs
-            self.evaluate_every_n_rounds = num_train_batches  # Switch to testing after train batches
+            self.evaluate_every_n_rounds = self.num_train_batches  # Switch to testing after train batches
             
         elif self.mode == "test":
             # Only testing
-            self.batches_per_epoch = num_test_batches
-            self.total_rounds = num_test_batches * self.num_epochs
+            self.batches_per_epoch = self.num_test_batches
+            self.total_rounds = self.num_test_batches * self.num_epochs
             self.evaluate_every_n_rounds = float('inf')  # Never evaluate since already eval
 
         print(f"Mode: {self.mode}")
-        print(f"Train batches per epoch: {num_train_batches}")
-        print(f"Test batches per epoch: {num_test_batches}")
+        print(f"Train batches per epoch: {self.num_train_batches}")
+        print(f"Test batches per epoch: {self.num_test_batches}")
         print(f"Batches per epoch: {self.batches_per_epoch}")
         print(f"Total rounds: {self.total_rounds}")
         print(f"Evaluate every N rounds: {self.evaluate_every_n_rounds}\n")
@@ -240,7 +240,7 @@ def load_config(config_path: str = "config.yaml") -> VFLConfig:
         kwargs['optimizer'] = training.get('optimizer', 'adam')
         kwargs['weight_decay'] = training.get('weight_decay', 0)
         kwargs['overlap_ratio'] = training.get('overlap_ratio', 1.0)
-        kwargs['only_train_with_overlap'] = training.get('only_train_with_overlap', False
+        kwargs['only_train_with_overlap'] = training.get('only_train_with_overlap'), False
         kwargs['mode'] = training.get('mode', 'train-val')
     
     # Paths section
@@ -276,7 +276,7 @@ def load_config(config_path: str = "config.yaml") -> VFLConfig:
     config = VFLConfig(**kwargs)
     
     # Save config copy to experiment directory
-    config.save(os.path.join(config.exp_dir, "config.yaml"))
+    # config.save(os.path.join(config.exp_dir, "config.yaml"))
     
     return config
 
@@ -340,7 +340,7 @@ def save_metrics(metrics: Dict, config: VFLConfig):
     print(f"Metrics saved")
 
 
-def plot_training_curves(train_losses = None, val_losses = None, val_accuracies = None, config: VFLConfig):
+def plot_training_curves(train_losses = None, val_losses = None, val_accuracies = None, config: VFLConfig = None):
     """Plot and save training curves."""
     
     epochs = range(1, len(config.num_epochs) + 1)
@@ -348,7 +348,7 @@ def plot_training_curves(train_losses = None, val_losses = None, val_accuracies 
 
     if config.mode == "train":
         k = 1
-    elif config,mode == "train-val":
+    elif config.mode == "train-val":
         k = 3
     elif config.mode == "test":
         k = 2
