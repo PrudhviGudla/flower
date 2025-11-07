@@ -65,68 +65,78 @@ class VFLClient(NumPyClient):
 
         self.is_testing = config["is_testing"]
 
-        if self.is_testing:
-            self.model.eval()
-            with torch.no_grad():
+        try:
+            if self.is_testing:
+                self.model.eval()
+                with torch.no_grad():
+                    try:
+                        images, labels, entity_ids = next(self.test_iter)
+                    except StopIteration:
+                        self.test_iter = iter(self.test_loader)
+                        images, labels, entity_ids = next(self.test_iter)
+                    
+                    images = images.to(self.device)
+                    embeddings = self.model(images)  
+
+            else:
+                self.model.train()
                 try:
-                    images, labels, entity_ids = next(self.test_iter)
+                    images, labels, entity_ids = next(self.train_iter)
                 except StopIteration:
-                    self.test_iter = iter(self.test_loader)
-                    images, labels, entity_ids = next(self.test_iter)
-                
+                    self.train_iter = iter(self.train_loader)
+                    images, labels, entity_ids = next(self.train_iter)
+            
                 images = images.to(self.device)
                 embeddings = self.model(images)  
+                self.current_embeddings = embeddings # Only store if training (for backward)
+                
+            # detach just copies the tensor, computational graph of original tensor is not broken(verify?)
+            return (
+                    [
+                        embeddings.detach().cpu().numpy(),
+                        entity_ids.numpy(),
+                        labels.numpy()
+                    ],
+                    len(images),
+                    {
+                        "v_split_id": float(self.v_split_id),
+                        "is_testing": float(self.is_testing) 
+                    }
+                )
 
-        else:
-            self.model.train()
-            try:
-                images, labels, entity_ids = next(self.train_iter)
-            except StopIteration:
-                self.train_iter = iter(self.train_loader)
-                images, labels, entity_ids = next(self.train_iter)
-        
-            images = images.to(self.device)
-            embeddings = self.model(images)  
-            self.current_embeddings = embeddings # Only store if training (for backward)
-            
-        # detach just copies the tensor, computational graph of original tensor is not broken(verify?)
-        return (
-                [
-                    embeddings.detach().cpu().numpy(),
-                    entity_ids.numpy(),
-                    labels.numpy()
-                ],
-                len(images),
-                {
-                    "v_split_id": float(self.v_split_id),
-                    "is_testing": float(self.is_testing) 
-                }
-            )
+        except Exception as e:
+            print(f"ERROR in Client {self.v_split_id} fit(): {e}", flush=True)
+            raise
     
     def evaluate(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
         """Backward pass during training, nothing during testing."""
 
         self.is_testing = config["is_testing"]
         
-        if self.is_testing: 
-            # Testing phase - nothing to do (embeddings already computed in fit)
-            return 0.0, 0, {}
-        else:
-            # Training phase - backward pass
-            if self.current_embeddings is None:
+        try:
+            if self.is_testing: 
+                # Testing phase - nothing to do (embeddings already computed in fit)
                 return 0.0, 0, {}
-            
-            self.optimizer.zero_grad()
-            
-            if len(parameters) > 0:
-                gradients = torch.from_numpy(parameters[0]).float().to(self.device)
-                self.current_embeddings.backward(gradients)
-                self.optimizer.step()
-            
-            batch_size = len(self.current_embeddings)
-            self.current_embeddings = None
-            
-            return 0.0, batch_size, {}
+            else:
+                # Training phase - backward pass
+                if self.current_embeddings is None:
+                    return 0.0, 0, {}
+                
+                self.optimizer.zero_grad()
+                
+                if len(parameters) > 0:
+                    gradients = torch.from_numpy(parameters[0]).float().to(self.device)
+                    self.current_embeddings.backward(gradients)
+                    self.optimizer.step()
+                
+                batch_size = len(self.current_embeddings)
+                self.current_embeddings = None
+                
+                return 0.0, batch_size, {}
+
+        except Exception as e:
+            print(f"ERROR in Client {self.v_split_id} evaluate(): {e}", flush=True)
+            raise
 
 
 def client_fn(context: Context):
