@@ -23,6 +23,7 @@ class VFLStrategy(fl.server.strategy.FedAvg):
     """Server Strategy"""
     
     def __init__(self, config: VFLConfig, device: str):
+        super().__init__()
         self.config = config
         self.device = device
         self.num_clients = config.num_clients
