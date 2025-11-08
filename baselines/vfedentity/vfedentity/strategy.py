@@ -34,7 +34,7 @@ class VFLStrategy(fl.server.strategy.FedAvg):
         self.num_train_batches = config.num_train_batches
         self.num_test_batches = config.num_test_batches
         self.batches_per_epoch = config.batches_per_epoch
-
+        self.initial_parameters = ndarrays_to_parameters([])
         total_embedding_dim = self.embedding_dim * self.num_clients
         
         self.server_model = ServerModel(
@@ -184,6 +184,9 @@ class VFLStrategy(fl.server.strategy.FedAvg):
         if not results:
             return None, {}
 
+        if not self.accept_failures and failures:
+            return None, {}
+
         # Determine current phase (Redoing it even after configure fit for safety)
         phase, _ = self._determine_phase(server_round)
         is_testing = (phase == "test")
@@ -287,6 +290,7 @@ class VFLStrategy(fl.server.strategy.FedAvg):
             self.server_model.train()
             self.train_batch_counter += 1
             self.optimizer.zero_grad()
+            batch_embeddings = batch_embeddings.detach()
             batch_embeddings.requires_grad = True
             # Forward pass
             outputs = self.server_model(batch_embeddings)  # [batch_size, num_classes]
@@ -442,9 +446,9 @@ class VFLStrategy(fl.server.strategy.FedAvg):
         return [(client, config) for client in clients]
     
 
-    # def aggregate_evaluate(self, server_round, results, failures):
-    #     """Aggregate evaluation - minimal implementation."""
-    #     return None, {}
+    def aggregate_evaluate(self, server_round, results, failures):
+        """Aggregate evaluation - minimal implementation."""
+        return None, {}
 
     # def evaluate(self, server_round: int, parameters: Parameters):
     #     """Server-side evaluation - minimal implementation."""
@@ -485,57 +489,3 @@ class VFLStrategy(fl.server.strategy.FedAvg):
         print(f"\nBest Test Accuracy: {self.best_test_acc:.4f}")
         print(f"Results saved in: {self.config.metrics_path}\n")
 
-
-# ===============================================================================================================
-    #     def _load_checkpoint(self, checkpoint_path: str):
-    #     """Load checkpoint and resume training."""
-        
-    #     checkpoint = load_checkpoint(
-    #         checkpoint_path,
-    #         self.server_model,
-    #         self.optimizer,
-    #         self.device
-    #     )
-        
-    #     if checkpoint:
-    #         self.current_epoch = checkpoint['epoch']
-    #         self.round_losses = checkpoint.get('metrics', {}).get('round_losses', [])
-    #         self.round_accuracies = checkpoint.get('metrics', {}).get('round_accuracies', [])
-    #         self.test_accuracies = checkpoint.get('metrics', {}).get('test_accuracies', [])
-    #         self.best_test_acc = max(self.test_accuracies) if self.test_accuracies else 0.0
-    #         print(f"✓ Resumed from epoch {self.current_epoch}, best test acc: {self.best_test_acc:.4f}")
-
-
-    # # ADD checkpoint saving method:
-
-    # def _save_checkpoint(self, server_round: int, current_test_acc: float):
-    #     """Save checkpoint at epoch boundaries."""
-    #     from vfedentity.utils import save_checkpoint
-        
-    #     epoch = server_round // self.evaluate_every_n_rounds
-        
-    #     # Skip if not at save interval
-    #     if epoch % self.config.save_every_n_epochs != 0:
-    #         return
-        
-    #     metrics = {
-    #         'round_losses': self.round_losses,
-    #         'round_accuracies': self.round_accuracies,
-    #         'test_accuracies': self.test_accuracies,
-    #         'alignment_stats': self.alignment_stats,
-    #     }
-        
-    #     is_best = current_test_acc > self.best_test_acc
-    #     if is_best:
-    #         self.best_test_acc = current_test_acc
-        
-    #     save_checkpoint(
-    #         self.server_model,
-    #         self.optimizer,
-    #         epoch,
-    #         server_round,
-    #         metrics,
-    #         self.config,
-    #         self.wandb,
-    #         is_best=is_best
-    #     )
