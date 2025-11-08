@@ -155,7 +155,7 @@ class VFLClient(NumPyClient):
             else:
                 # Training phase - backward pass
                 if self.current_embeddings is None:
-                    return 0.0, 0, {}
+                    return 0.0, 1, {}
                 
                 self.optimizer.zero_grad()
                 
@@ -179,27 +179,41 @@ def client_fn(context: Context):
     
     partition_id = context.node_config["partition-id"]
     num_partitions = context.node_config["num-partitions"]
+
+    state_file = CLIENT_STATE_DIR / f"client_fn.json"
+    state = {"log": "start", "partition": partition_id}
+    with open(state_file, 'w') as f:
+        json.dump(state, f, indent=2, default=str)
     
-    print(f"\n[CLIENT_FN] Creating client - partition {partition_id}/{num_partitions}", flush=True)
+    # print(f"\n[CLIENT_FN] Creating client - partition {partition_id}/{num_partitions}", flush=True)
     
     try:
         # Load config from YAML
         config_path = context.run_config.get("config-path", "config.yaml")
-        print(f"[CLIENT_FN] Loading config from: {config_path}", flush=True)
+        # print(f"[CLIENT_FN] Loading config from: {config_path}", flush=True)
         config = load_config(config_path)
-        print(f"[CLIENT_FN] Config loaded successfully", flush=True)
+        # print(f"[CLIENT_FN] Config loaded successfully", flush=True)
         
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"[CLIENT_FN] Device: {device}", flush=True)
+        # print(f"[CLIENT_FN] Device: {device}", flush=True)
+
+        state = {"log": "config loaded"}
+        with open(state_file, 'w') as f:
+            json.dump(state, f, indent=2, default=str)
         
         # Load partition
-        print(f"[CLIENT_FN] Loading partition {partition_id}/{num_partitions}...", flush=True)
+        # print(f"[CLIENT_FN] Loading partition {partition_id}/{num_partitions}...", flush=True)
         train_loader, test_loader, v_split_id, channels = load_partition(
             partition_id, num_partitions, config
         )
-        print(f"[CLIENT_FN] Partition loaded - v_split_id={v_split_id}, channels={channels}", flush=True)
+        # print(f"[CLIENT_FN] Partition loaded - v_split_id={v_split_id}, channels={channels}", flush=True)
         
-        print(f"[CLIENT_FN] Creating VFLClient instance...", flush=True)
+        # print(f"[CLIENT_FN] Creating VFLClient instance...", flush=True)
+
+        state = {"log": "partition loaded", "vsplitid": v_split_id}
+        with open(state_file, 'w') as f:
+            json.dump(state, f, indent=2, default=str)
+
         client = VFLClient(
             train_loader=train_loader,
             test_loader=test_loader,
@@ -207,13 +221,13 @@ def client_fn(context: Context):
             config=config,
             device=device
         )
-        print(f"[CLIENT_FN] VFLClient created successfully", flush=True)
+        # print(f"[CLIENT_FN] VFLClient created successfully", flush=True)
         
-        print(f"[CLIENT_FN] Converting to Flower client...", flush=True)
+        # print(f"[CLIENT_FN] Converting to Flower client...", flush=True)
         return client.to_client()
     
     except Exception as e:
-        print(f"[CLIENT_FN] ERROR: {e}", flush=True)
+        # print(f"[CLIENT_FN] ERROR: {e}", flush=True)
         import traceback
         traceback.print_exc()
         raise

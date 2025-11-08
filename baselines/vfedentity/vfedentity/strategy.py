@@ -83,13 +83,13 @@ class VFLStrategy(Strategy):
         self.test_batch_counter = 0
         self.test_correct = 0
         self.test_total = 0
-
+        self.results = None
         self.wandb = setup_wandb(config)
         # if config.resume_from:
         #     self._load_checkpoint(config.resume_from)
 
-    def initialize_parameters(self, client_manager):
-    	return ndarrays_to_parameters([])
+    # def initialize_parameters(self, client_manager):
+    # 	return ndarrays_to_parameters([])
 
     def _determine_phase(self, server_round: int) -> Tuple[str, int]:
         """
@@ -179,11 +179,11 @@ class VFLStrategy(Strategy):
         failures: List[BaseException],
     ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
         
+        self.results = results
+
         if not results:
             return None, {}
 
-        self.results = results
-        
         # Determine current phase (Redoing it even after configure fit for safety)
         phase, _ = self._determine_phase(server_round)
         is_testing = (phase == "test")
