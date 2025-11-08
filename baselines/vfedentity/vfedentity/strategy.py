@@ -13,13 +13,13 @@ from flwr.server.strategy import Strategy
 from typing import List, Tuple, Dict, Optional
 from collections import OrderedDict
 import numpy as np
-
+import flwr as fl
 from vfedentity.task import ServerModel
 from vfedentity.utils import VFLConfig, setup_wandb, save_metrics, plot_training_curves
-from flwr.common import ndarrays_to_parameters
+# from flwr.common import ndarrays_to_parameters
 
 
-class VFLStrategy(Strategy):
+class VFLStrategy(fl.server.strategy.FedAvg):
     """Server Strategy"""
     
     def __init__(self, config: VFLConfig, device: str):
@@ -83,7 +83,7 @@ class VFLStrategy(Strategy):
         self.test_batch_counter = 0
         self.test_correct = 0
         self.test_total = 0
-        self.results = None
+        # self.results = None
         self.wandb = setup_wandb(config)
         # if config.resume_from:
         #     self._load_checkpoint(config.resume_from)
@@ -442,13 +442,13 @@ class VFLStrategy(Strategy):
         return [(client, config) for client in clients]
     
 
-    def aggregate_evaluate(self, server_round, results, failures):
-        """Aggregate evaluation - minimal implementation."""
-        return None, {}
+    # def aggregate_evaluate(self, server_round, results, failures):
+    #     """Aggregate evaluation - minimal implementation."""
+    #     return None, {}
 
-    def evaluate(self, server_round: int, parameters: Parameters):
-        """Server-side evaluation - minimal implementation."""
-        return None
+    # def evaluate(self, server_round: int, parameters: Parameters):
+    #     """Server-side evaluation - minimal implementation."""
+    #     return None
 
 
     def finalize(self):
