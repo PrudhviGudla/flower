@@ -16,6 +16,7 @@ import numpy as np
 
 from vfedentity.task import ServerModel
 from vfedentity.utils import VFLConfig, setup_wandb, save_metrics, plot_training_curves
+from flwr.common import ndarrays_to_parameters
 
 
 class VFLStrategy(Strategy):
@@ -88,7 +89,6 @@ class VFLStrategy(Strategy):
         #     self._load_checkpoint(config.resume_from)
 
     def initialize_parameters(self, client_manager):
-    	from flwr.common import ndarrays_to_parameters
     	return ndarrays_to_parameters([])
 
     def _determine_phase(self, server_round: int) -> Tuple[str, int]:
@@ -149,6 +149,7 @@ class VFLStrategy(Strategy):
                 if self.mode == "train-val":
                     print(f"\n{'='*60}")
                     print(f"Epoch {self.current_epoch} training complete - Starting Validation")
+                    print(self.results)
                     print(f"{'='*60}\n")
             
             elif phase == "train":
@@ -180,6 +181,8 @@ class VFLStrategy(Strategy):
         
         if not results:
             return None, {}
+
+        self.results = results
         
         # Determine current phase (Redoing it even after configure fit for safety)
         phase, _ = self._determine_phase(server_round)

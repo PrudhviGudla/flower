@@ -8,6 +8,13 @@ from collections import OrderedDict
 
 from vfedentity.task import ClientModel, load_partition
 from vfedentity.utils import load_config, VFLConfig
+import json
+from pathlib import Path
+import uuid
+
+# Create client state file
+CLIENT_STATE_DIR = Path("/tmp/vfl_client_states")
+CLIENT_STATE_DIR.mkdir(exist_ok=True)
 
 class VFLClient(NumPyClient):
     """VFL Client with batch-level training."""
@@ -20,6 +27,13 @@ class VFLClient(NumPyClient):
         config: VFLConfig = None, 
         device: str = None,
     ):
+
+        self.client_id = str(uuid.uuid4())[:8]
+        self.state_file = CLIENT_STATE_DIR / f"client_{self.client_id}_{v_split_id}.json"
+        
+        self._write_state("init_started", {"v_split_id": v_split_id})
+
+
         self.train_loader = train_loader
         self.test_loader = test_loader
         self.v_split_id = v_split_id
@@ -30,31 +44,52 @@ class VFLClient(NumPyClient):
         self.mode = config.mode
         self.embedding_dim = config.client_embedding_dim 
 
+
+
         # Initialize model
-        self.model = ClientModel(
-            input_channels=self.num_channels,
-            embedding_dim=self.embedding_dim
-        ).to(device)
-        
-        if self.mode == "train" or self.mode == "train-val":
-            self.train_iter = iter(self.train_loader)
-            if self.test_loader is not None:  
-                self.test_iter = iter(self.test_loader)
-            else:
-                self.test_iter = None
+
+        try:
+            self.model = ClientModel(
+                input_channels=self.num_channels,
+                embedding_dim=self.embedding_dim
+            ).to(device)
             
-            if config.optimizer == "adam":
-                self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
-            elif config.optimizer =="sgd":
-                self.optimizer = torch.optim.SGD(self.model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay, momentum=0.9)
-            self.is_testing = False # flag
+            if self.mode == "train" or self.mode == "train-val":
+                self.train_iter = iter(self.train_loader)
+                if self.test_loader is not None:  
+                    self.test_iter = iter(self.test_loader)
+                else:
+                    self.test_iter = None
+                
+                if config.optimizer == "adam":
+                    self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+                elif config.optimizer =="sgd":
+                    self.optimizer = torch.optim.SGD(self.model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay, momentum=0.9)
+                self.is_testing = False # flag
 
-        if self.mode == "test":
-            self.test_iter = iter(self.test_loader)
-            self.is_testing = True # flag
+            if self.mode == "test":
+                self.test_iter = iter(self.test_loader)
+                self.is_testing = True # flag
 
-        self.current_batch_data = None
-        self.current_embeddings = None
+            self.current_batch_data = None
+            self.current_embeddings = None
+            self._write_state("init_complete", {"device": str(device), "mode": self.mode})
+        
+
+        except Exception as e:
+            self._write_state("init_error", {"error": str(e)})
+            raise
+
+    def _write_state(self, status, data=None):
+        """Write client state to file for debugging."""
+        state = {
+            "status": status,
+            "v_split_id": self.v_split_id,
+            "timestamp": str(__import__('datetime').datetime.now()),
+            "data": data or {}
+        }
+        with open(self.state_file, 'w') as f:
+            json.dump(state, f, indent=2, default=str)
         
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
         """Return empty - VFL doesn't share model parameters."""
@@ -62,10 +97,10 @@ class VFLClient(NumPyClient):
     
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         """Forward pass for training and testing."""
-
-        self.is_testing = config.get("is_testing", False)
+        self._write_state("fit_started", {"round": config.get("server_round")})
 
         try:
+            self.is_testing = config.get("is_testing", False)
             if self.is_testing:
                 self.model.eval()
                 with torch.no_grad():
@@ -105,7 +140,7 @@ class VFLClient(NumPyClient):
                 )
 
         except Exception as e:
-            print(f"ERROR in Client {self.v_split_id} fit(): {e}", flush=True)
+            self._write_state("fit_error", {"error": str(e)})
             raise
     
     def evaluate(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
